@@ -1,25 +1,25 @@
+// "use strict"
 let width = 10,
     height = 20,
     figWidth = 4,
     figHeight = 4;
 
-width += figWidth;
+let ev = new CustomEvent('myEv')
+
+
 height += figHeight / 2;
 
-let isFlying = false,
-    inProgress = false,
+let ms = 500,
     currentFig,
-    ms,
     x,
-    y
+    y,
+    timerId
 
 for (let i = 0; i < height; i++) {
     let tr = document.createElement('tr');
     if (i < figHeight / 2) tr.hidden = true;
     for (let j = 0; j < width; j++) {
         let td = document.createElement('td');
-        if (j < figWidth / 2 || j > width - 1 - figWidth / 2) td.hidden = true;
-        td.innerHTML = `${i} ${j}`;
         tr.append(td)
     }
     table.append(tr)
@@ -28,12 +28,12 @@ for (let i = 0; i < height; i++) {
 const dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
 
 
-function render() {
-    dataMtx.forEach((row, i) => row.forEach((el, j) => {
-        let block = table.rows[i].cells[j];
-        if (el - block.classList.contains('filled')) block.classList.toggle('filled');
-    }))
-}
+// function render() {
+//     dataMtx.forEach((row, i) => row.forEach((el, j) => {
+//         let block = table.rows[i].cells[j];
+//         if (el - block.classList.contains('filled')) block.classList.toggle('filled');
+//     }))
+// }
 
 const randomInt0To = len => ~~(Math.random() * len)
 
@@ -60,22 +60,49 @@ function rotateFigure() {
 }
 
 function isPossible(fig, x, y) {
-    return !fig.some((row, i) => row.some((val, j) => val && (dataMtx[Math.min(height-1, y + i)][x + j] || x + j < 2 || x + j > width - 3 || y + i >= height)))
+    return !fig.some((row, i) => row.some((val, j) => val &&
+        (
+            y + i >= height ||
+            x + j < 0 ||
+            x + j > width - 1 ||
+            dataMtx[Math.min(height - 1, y + i)][x + j < 0 ? 0 : x + j > width - 1 ? width - 1 : x + j]
+        )
+    ))
 }
 
 function popFigure(x, y) {
-    currentFig.forEach((row, i) => { row.forEach((val, j) => { if (val) dataMtx[y + i][x + j] = 0 }) });
+    currentFig.forEach((row, i) => {
+        row.forEach((val, j) => {
+            if (val) {
+                dataMtx[y + i][x + j] = 0;
+                table.rows[y + i].cells[x + j].classList.remove('filled')
+            }
+        })
+    });
 }
 
 function pushFigure(x, y) {
-    currentFig.forEach((row, i) => { row.forEach((val, j) => { if (val) dataMtx[y + i][x + j] = val }) });
-    render();
+    currentFig.forEach((row, i) => {
+        row.forEach((val, j) => {
+            if (val) {
+                dataMtx[y + i][x + j] = val;
+                table.rows[y + i].cells[x + j].classList.add('filled')
+            }
+        })
+    });
+    // render();
 }
 
 
 function fall() {
     popFigure(x, y)
-    if (!isPossible(currentFig, x, y + 1)) pushFigure(x, y);
+    if (!isPossible(currentFig, x, y + 1)) {
+        pushFigure(x, y);
+        for (let i = 2; i < height; i++) if (rowIsFilled(i)) cleanRow(i);
+        clearInterval(timerId);
+        currentFig = null;
+        document.body.dispatchEvent(ev);
+    }
     else pushFigure(x, ++y);
 }
 
@@ -91,7 +118,7 @@ function pushRight() {
     else pushFigure(++x, y);
 }
 
-const rowIsFilled = ind => dataMtx[ind].slice(2, -2).every(el => el)
+const rowIsFilled = ind => dataMtx[ind]/* .slice(2, -2) */.every(el => el)
 
 
 function cleanRow(i) {
@@ -101,11 +128,20 @@ function cleanRow(i) {
     const tr = document.createElement('tr');
     for (let j = 0; j < width; j++) {
         let td = document.createElement('td');
-        if (j < figWidth / 2 || j > width - 1 - figWidth / 2) td.hidden = true;
+        // if (j < figWidth / 2 || j > width - 1 - figWidth / 2) td.hidden = true;
         tr.append(td);
     }
     table.rows[2].before(tr);
 }
+
+document.body.addEventListener('myEv', function startNewRound() {
+    x = width / 2 - 2;
+    y = 0;
+    chooseRandomFig(figures);
+    pushFigure(x, y);
+    timerId = setInterval(fall, ms)
+
+})
 
 document.body.addEventListener('keydown', function handler(e) {
     if (!currentFig) return;
@@ -114,20 +150,13 @@ document.body.addEventListener('keydown', function handler(e) {
 
     if (e.key === 'ArrowLeft') pushLeft();
     if (e.key === 'ArrowRight') pushRight();
-    if (e.key === 'ArrowUp') rotateFigure();
-    if (e.key === 'ArrowDown') {
-        fall()
-    };
+    if (e.key === 'ArrowDown') fall();
 })
 
-while (true) {
-    x = width / 2 - 2;
-    y = 0;
-    chooseRandomFig(figures);
-    pushFigure(x, y);
-    break;
-    // let timer = setInterval(()=>{
-    //     for (let i = 2; i < height; i++) if (rowIsFilled(i)) cleanRow(i)
-    // }
-}
+document.body.addEventListener('keyup', function handler(e) {
+    if (!currentFig) return;
+    if (e.key === 'ArrowUp') e.preventDefault(), rotateFigure();
+})
+
+document.body.dispatchEvent(ev)
 
