@@ -1,0 +1,12 @@
+.filled{
+    background-color: red;
+}
+
+table, td{
+    border: 2px solid black;
+}
+
+/* table tr:nth-child(1),
+table tr:nth-child(2){
+    display: none;
+}  */
