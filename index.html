@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +8,45 @@
     <title>Tetris Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="root">
         <div id="viewport">
-            <table class="table" id='table'></table>
-            <div></div>
+            <table id='table' style="float:left"></table>
+            <div>
+                <table id='table2'>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+                <button id="startBtn">Start New Game</button>
+                <button id="pauseBtn">Pause</button>
+            </div>
         </div>
     </div>
     <script src="figures.js"></script>
     <script src="main.js"></script>
 </body>
+
 </html>

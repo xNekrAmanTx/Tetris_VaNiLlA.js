@@ -1,32 +1,73 @@
 // "use strict"
+// {
+
+
 let width = 10,
     height = 20,
-    figWidth = 4,
-    figHeight = 4;
+    ms = 1000;
 
-let ev = new CustomEvent('myEv')
+height += 2;
 
-
-height += figHeight / 2;
-
-let ms = 500,
+let dataMtx,
     currentFig,
+    figWidth,
+    figHeight,
+    nextFigure,
     x,
     y,
     timerId
 
-for (let i = 0; i < height; i++) {
-    let tr = document.createElement('tr');
-    if (i < figHeight / 2) tr.hidden = true;
-    for (let j = 0; j < width; j++) {
-        let td = document.createElement('td');
-        tr.append(td)
-    }
-    table.append(tr)
+
+function startNewGame() {
+    clearInterval(timerId);
+    refreshMtxAndTable();
+    startNewRound();
 }
 
-const dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
+function startNewRound() {
+    x = width / 2 - 2;
+    y = 0;
+    chooseRandomFig(figures);
+    pushFigure(x, y);
+    showNextFig();
+    timerId = setInterval(fall, ms)
+}
 
+function createTable() {
+    for (let i = 0; i < height; i++) {
+        let tr = document.createElement('tr');
+        if (i < 2) tr.hidden = true;
+        for (let j = 0; j < width; j++) {
+            let td = document.createElement('td');
+            tr.append(td)
+        }
+        table.append(tr)
+    }
+}
+
+function refreshMtxAndTable() {
+    dataMtx.forEach((row, i) => {
+        row.forEach((_, j) => {
+            table.rows[i].cells[j].classList.remove('filled');
+            dataMtx[i][j] = 0;
+        })
+    })
+}
+
+
+// function createNewMtxAndTable() {
+//     dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
+//     table.innerHTML = '';
+//     createTable();
+// }
+
+dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
+
+function initFigure(fig) {
+    currentFig = fig;
+    figWidth = fig[0].length;
+    figHeight = fig.length;
+}
 
 // function render() {
 //     dataMtx.forEach((row, i) => row.forEach((el, j) => {
@@ -37,24 +78,49 @@ const dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
 
 const randomInt0To = len => ~~(Math.random() * len)
 
-const chooseRandomFig = arr => { currentFig = arr[randomInt0To(arr.length)] }
+function chooseRandomFig(arr) {
+    currentFig = nextFigure || arr[randomInt0To(arr.length)];
+    nextFigure = arr[randomInt0To(arr.length)];
+    initFigure(currentFig);
+}
 
+function showNextFig() {
+    nextFigure.forEach((row, i) => row.forEach((el, j) => {
+        let block = table2.rows[i].cells[j];
+        if (el - block.classList.contains('filled')) block.classList.toggle('filled');
+    }))
+}
 // const chooseRandomRotation = () => {
 //     for (let k = 0; k < randomInt0To(4); k++) rotateFigure();
 // }
 
+const rowIsFilled = ind => dataMtx[ind].every(el => el)
+
+
+function cleanRow(i) {
+    table.rows[i].remove();
+    dataMtx.splice(i, 1);
+    dataMtx.unshift(new Array(width).fill(0));
+    const tr = document.createElement('tr');
+    for (let j = 0; j < width; j++) {
+        let td = document.createElement('td');
+        tr.append(td);
+    }
+    table.rows[2].before(tr);
+}
+
 function rotateFigure() {
-    let rotatedFig = [];
-    for (let i = 0; i < figWidth; i++) {
-        rotatedFig.push([])
-        for (let j = 0; j < figHeight; j++) {
-            rotatedFig[i][j] = currentFig[figWidth - 1 - j][i]
+    let rotatedFig = [];/* new Array(figWidth).fill('').map(_ => new Array(figHeight).fill(0)); */
+    for (let j = figWidth - 1; j >= 0; j--) {
+        rotatedFig.push([]);
+        for (let i = 0; i < figHeight; i++) {
+            /* if (currentFig[i][j]) */ rotatedFig[figWidth - 1 - j][i] = currentFig[i][j];
         }
     }
     popFigure(x, y);
     if (!isPossible(rotatedFig, x, y)) pushFigure(x, y);
     else {
-        currentFig = rotatedFig;
+        initFigure(rotatedFig);
         pushFigure(x, y)
     }
 }
@@ -70,7 +136,7 @@ function isPossible(fig, x, y) {
     ))
 }
 
-function popFigure(x, y) {
+function popFigure(/* fig, from, tab, */x, y) {
     currentFig.forEach((row, i) => {
         row.forEach((val, j) => {
             if (val) {
@@ -81,7 +147,7 @@ function popFigure(x, y) {
     });
 }
 
-function pushFigure(x, y) {
+function pushFigure(/* fig, in, tab, */x, y) {
     currentFig.forEach((row, i) => {
         row.forEach((val, j) => {
             if (val) {
@@ -90,18 +156,19 @@ function pushFigure(x, y) {
             }
         })
     });
-    // render();
 }
 
+function finishRound() {
+    for (let i = 3; i < height; i++) if (rowIsFilled(i)) cleanRow(i);
+    clearInterval(timerId);
+    dataMtx[2].every(el => !el) ? startNewRound() : (alert('Game Over. You lose... Try again'), refreshMtxAndTable());
+}
 
 function fall() {
     popFigure(x, y)
     if (!isPossible(currentFig, x, y + 1)) {
         pushFigure(x, y);
-        for (let i = 2; i < height; i++) if (rowIsFilled(i)) cleanRow(i);
-        clearInterval(timerId);
-        currentFig = null;
-        document.body.dispatchEvent(ev);
+        finishRound();
     }
     else pushFigure(x, ++y);
 }
@@ -118,33 +185,15 @@ function pushRight() {
     else pushFigure(++x, y);
 }
 
-const rowIsFilled = ind => dataMtx[ind]/* .slice(2, -2) */.every(el => el)
+startBtn.onclick = () => startNewGame();
+
+pauseBtn.onclick = () => timerId ? (clearInterval(timerId), timerId = null, pauseBtn.innerHTML = 'Continue') : (timerId = setInterval(fall, ms), pauseBtn.innerHTML = 'Pause')
 
 
-function cleanRow(i) {
-    table.rows[i].remove();
-    dataMtx.splice(i, 1);
-    dataMtx.unshift(new Array(width).fill(0));
-    const tr = document.createElement('tr');
-    for (let j = 0; j < width; j++) {
-        let td = document.createElement('td');
-        // if (j < figWidth / 2 || j > width - 1 - figWidth / 2) td.hidden = true;
-        tr.append(td);
-    }
-    table.rows[2].before(tr);
-}
-
-document.body.addEventListener('myEv', function startNewRound() {
-    x = width / 2 - 2;
-    y = 0;
-    chooseRandomFig(figures);
-    pushFigure(x, y);
-    timerId = setInterval(fall, ms)
-
-})
+// document.body.addEventListener('myEv', startNewRound)
 
 document.body.addEventListener('keydown', function handler(e) {
-    if (!currentFig) return;
+    // if (!timerId) return;
 
     if (e.keyCode > 36 && e.keyCode < 41) e.preventDefault(); // if(event.key.slice(,5) === 'Arrow')
 
@@ -154,9 +203,11 @@ document.body.addEventListener('keydown', function handler(e) {
 })
 
 document.body.addEventListener('keyup', function handler(e) {
-    if (!currentFig) return;
+    // if (!timerId) return;
     if (e.key === 'ArrowUp') e.preventDefault(), rotateFigure();
 })
 
-document.body.dispatchEvent(ev)
+createTable()
+    // startNewGame()
 
+    // }

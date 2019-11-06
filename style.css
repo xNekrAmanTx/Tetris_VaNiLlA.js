@@ -1,5 +1,7 @@
 .filled{
     background-color: red;
+    border-style:none;
+    
 }
 
 table{
@@ -9,9 +11,12 @@ table{
 }
 
 td {
-    /* border: 1px solid black; */
     height: 20px;
     width: 20px;
+}
+
+#table td {
+    border: 1px solid black;
 }
 
 /* table tr:nth-child(1),
