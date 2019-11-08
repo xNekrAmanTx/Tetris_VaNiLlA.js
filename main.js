@@ -3,8 +3,8 @@
 
 
 let width = 10,
-    height = 20,
-    ms = 1000;
+    height = 20;
+    
 
 height += 2;
 
@@ -15,13 +15,17 @@ let dataMtx,
     nextFigure,
     x,
     y,
-    timerId
+    timerId,
+    ms;
 
-
-function startNewGame() {
+function setInit() {
     clearInterval(timerId);
+    timerId = currentFig = nextFigure = null;
+    pauseBtn.innerHTML = 'Pause';
     refreshMtxAndTable();
-    startNewRound();
+    ms = 1000;
+    lvl.innerHTML = 1;
+    score.innerHTML = 0;
 }
 
 function startNewRound() {
@@ -29,9 +33,16 @@ function startNewRound() {
     y = 0;
     chooseRandomFig(figures);
     pushFigure(x, y);
-    showNextFig();
+    showNextFig(nextFigure);
+
     timerId = setInterval(fall, ms)
 }
+
+function startNewGame() {
+    setInit();
+    startNewRound();
+}
+
 
 function createTable() {
     for (let i = 0; i < height; i++) {
@@ -61,8 +72,6 @@ function refreshMtxAndTable() {
 //     createTable();
 // }
 
-dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
-
 function initFigure(fig) {
     currentFig = fig;
     figWidth = fig[0].length;
@@ -90,6 +99,8 @@ function showNextFig() {
         if (el - block.classList.contains('filled')) block.classList.toggle('filled');
     }))
 }
+
+
 // const chooseRandomRotation = () => {
 //     for (let k = 0; k < randomInt0To(4); k++) rotateFigure();
 // }
@@ -110,11 +121,21 @@ function cleanRow(i) {
 }
 
 function rotateFigure() {
-    let rotatedFig = [];/* new Array(figWidth).fill('').map(_ => new Array(figHeight).fill(0)); */
-    for (let j = figWidth - 1; j >= 0; j--) {
-        rotatedFig.push([]);
-        for (let i = 0; i < figHeight; i++) {
-            /* if (currentFig[i][j]) */ rotatedFig[figWidth - 1 - j][i] = currentFig[i][j];
+    if (!figures.indexOf(currentFig)) return;
+
+    let rotatedFig = new Array(figWidth).fill('').map(_ => new Array(figHeight).fill(0));
+
+    if (currentFig.reduce((sum, row, i) => 3 - i ? sum + row[3] : sum + row.reduce((s, el) => s + el), 0)) {
+        for (let j = 0; j < figWidth; j++) {
+            for (let i = 0; i < figHeight; i++) {
+                rotatedFig[j][i] = currentFig[i][j];
+            }
+        }
+    } else {
+        for (let j = 0; j < figWidth - 1; j++) {
+            for (let i = 0; i < figHeight - 1; i++) {
+            /* if (currentFig[i][j]) */ rotatedFig[figWidth - 2 - j][i] = currentFig[i][j];
+            }
         }
     }
     popFigure(x, y);
@@ -158,10 +179,24 @@ function pushFigure(/* fig, in, tab, */x, y) {
     });
 }
 
+function finishGame() {
+    alert('Game Over. You lose... Try again')
+    nextFigure = new Array(4).fill(new Array(4).fill(0));
+    showNextFig();
+    setInit();
+}
+
 function finishRound() {
-    for (let i = 3; i < height; i++) if (rowIsFilled(i)) cleanRow(i);
+    for (let i = 3, k = 0; i < height; i++) {
+        if (rowIsFilled(i)) {
+            cleanRow(i);
+            score.innerHTML = +score.innerHTML + 200*(1 + k++/2);
+        }
+    }
+    if(score.innerHTML >= lvl.innerHTML*5000) levelUp(); //if(('000' + score.innerHTML).slice(-4)[0] >= lvl.innerHTML)
     clearInterval(timerId);
-    dataMtx[2].every(el => !el) ? startNewRound() : (alert('Game Over. You lose... Try again'), refreshMtxAndTable());
+    timerId = null;
+    dataMtx[2].every(el => !el) ? startNewRound() : finishGame();
 }
 
 function fall() {
@@ -185,28 +220,39 @@ function pushRight() {
     else pushFigure(++x, y);
 }
 
-startBtn.onclick = () => startNewGame();
+const levelUp = () => {
+    lvl.innerHTML++;
+    ms*=0.8;
+}
 
-pauseBtn.onclick = () => timerId ? (clearInterval(timerId), timerId = null, pauseBtn.innerHTML = 'Continue') : (timerId = setInterval(fall, ms), pauseBtn.innerHTML = 'Pause')
+const pause = () => timerId ? (clearInterval(timerId), timerId = null, pauseBtn.innerHTML = 'Continue') : (timerId = setInterval(fall, ms), pauseBtn.innerHTML = 'Pause')
+
+startBtn.onclick = startNewGame;
+
+pauseBtn.onclick = () => { if (currentFig) pause() };
 
 
 // document.body.addEventListener('myEv', startNewRound)
 
-document.body.addEventListener('keydown', function handler(e) {
-    // if (!timerId) return;
-
+document.addEventListener('keydown', function handler(e) {
     if (e.keyCode > 36 && e.keyCode < 41) e.preventDefault(); // if(event.key.slice(,5) === 'Arrow')
 
-    if (e.key === 'ArrowLeft') pushLeft();
-    if (e.key === 'ArrowRight') pushRight();
-    if (e.key === 'ArrowDown') fall();
+    if (timerId) {
+        if (e.key === 'ArrowUp' && !e.repeat) rotateFigure();
+        else if (e.key === 'ArrowLeft') pushLeft();
+        else if (e.key === 'ArrowRight') pushRight();
+        else if (e.key === 'ArrowDown') (fall(), score.innerHTML++);
+    }
 })
 
-document.body.addEventListener('keyup', function handler(e) {
-    // if (!timerId) return;
-    if (e.key === 'ArrowUp') e.preventDefault(), rotateFigure();
-})
+// document.addEventListener('keyup', function handler(e) {
+//     if (!currentFig) return;
+//     // console.log(e.target)
+    
+//     // else if (e.key === ' ') e.preventDefault(), pause();
+// })
 
+dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
 createTable()
     // startNewGame()
 
