@@ -3,16 +3,17 @@
 
 
 let width = 10,
-    height = 20;
-    
+    height = 20,
+    figWidth = figHeight = 4,
+    lastStep = false,
+    speedFlag = true;
 
 height += 2;
 
 let dataMtx,
     currentFig,
-    figWidth,
-    figHeight,
     nextFigure,
+    projection,
     x,
     y,
     timerId,
@@ -29,6 +30,7 @@ function setInit() {
 }
 
 function startNewRound() {
+    setTimeout(() => { lastStep = false }, 2 * 36);
     x = width / 2 - 2;
     y = 0;
     chooseRandomFig(figures);
@@ -72,11 +74,11 @@ function refreshMtxAndTable() {
 //     createTable();
 // }
 
-function initFigure(fig) {
-    currentFig = fig;
-    figWidth = fig[0].length;
-    figHeight = fig.length;
-}
+// function initFigure(fig) {
+//     currentFig = fig;
+//     figWidth = fig[0].length;
+//     figHeight = fig.length;
+// }
 
 // function render() {
 //     dataMtx.forEach((row, i) => row.forEach((el, j) => {
@@ -90,7 +92,6 @@ const randomInt0To = len => ~~(Math.random() * len)
 function chooseRandomFig(arr) {
     currentFig = nextFigure || arr[randomInt0To(arr.length)];
     nextFigure = arr[randomInt0To(arr.length)];
-    initFigure(currentFig);
 }
 
 function showNextFig() {
@@ -134,16 +135,14 @@ function rotateFigure() {
     } else {
         for (let j = 0; j < figWidth - 1; j++) {
             for (let i = 0; i < figHeight - 1; i++) {
-            /* if (currentFig[i][j]) */ rotatedFig[figWidth - 2 - j][i] = currentFig[i][j];
+                rotatedFig[figWidth - 2 - j][i] = currentFig[i][j];
             }
         }
     }
     popFigure(x, y);
-    if (!isPossible(rotatedFig, x, y)) pushFigure(x, y);
-    else {
-        initFigure(rotatedFig);
-        pushFigure(x, y)
-    }
+    if (isPossible(rotatedFig, x, y)) currentFig = rotatedFig;
+    pushFigure(x, y);
+
 }
 
 function isPossible(fig, x, y) {
@@ -180,20 +179,24 @@ function pushFigure(/* fig, in, tab, */x, y) {
 }
 
 function finishGame() {
-    alert('Game Over. You lose... Try again')
+    alert('Game Over. You lose... Try again');
+    // if(confirm('Would you like to submit your score?'))
+    // name = prompt('Enter your Name', 'unNamed');
+    saveScore();
     nextFigure = new Array(4).fill(new Array(4).fill(0));
     showNextFig();
-    setInit();
+    setTimeout(setInit, 2 * 36);
 }
 
 function finishRound() {
+    lastStep = true;
     for (let i = 3, k = 0; i < height; i++) {
         if (rowIsFilled(i)) {
             cleanRow(i);
-            score.innerHTML = +score.innerHTML + 200*(1 + k++/2);
+            score.innerHTML = +score.innerHTML + 200 * (1 + k++ / 2);
         }
     }
-    if(score.innerHTML >= lvl.innerHTML*5000) levelUp(); //if(('000' + score.innerHTML).slice(-4)[0] >= lvl.innerHTML)
+    levelUp();
     clearInterval(timerId);
     timerId = null;
     dataMtx[2].every(el => !el) ? startNewRound() : finishGame();
@@ -221,8 +224,10 @@ function pushRight() {
 }
 
 const levelUp = () => {
-    lvl.innerHTML++;
-    ms*=0.8;
+    if (score.innerHTML >= lvl.innerHTML * 2000) { //if(('000' + score.innerHTML).slice(-4)[0] >= lvl.innerHTML)
+        lvl.innerHTML++;
+        ms *= 0.8;
+    }
 }
 
 const pause = () => timerId ? (clearInterval(timerId), timerId = null, pauseBtn.innerHTML = 'Continue') : (timerId = setInterval(fall, ms), pauseBtn.innerHTML = 'Pause')
@@ -235,25 +240,43 @@ pauseBtn.onclick = () => { if (currentFig) pause() };
 // document.body.addEventListener('myEv', startNewRound)
 
 document.addEventListener('keydown', function handler(e) {
-    if (e.keyCode > 36 && e.keyCode < 41) e.preventDefault(); // if(event.key.slice(,5) === 'Arrow')
+    if (e.key === 'Enter') startNewGame();
+    if (e.key === 'Pause') pauseBtn.click();
+    if (e.key.slice(0, 5) === 'Arrow' || e.key === ' ' || e.key === 'Enter') e.preventDefault(); // if (e.keyCode > 36 && e.keyCode < 41) 
 
     if (timerId) {
-        if (e.key === 'ArrowUp' && !e.repeat) rotateFigure();
-        else if (e.key === 'ArrowLeft') pushLeft();
-        else if (e.key === 'ArrowRight') pushRight();
-        else if (e.key === 'ArrowDown') (fall(), score.innerHTML++);
+        if (e.key === 'ArrowUp' && !e.repeat) rotateFigure()
+        else if (e.key === 'ArrowLeft') pushLeft()
+        else if (e.key === 'ArrowRight') pushRight()
+        else if (e.key === 'ArrowDown' && speedFlag) lastStep && e.repeat ? speedFlag = false : (fall(), score.innerHTML++ , levelUp())
     }
 })
 
-// document.addEventListener('keyup', function handler(e) {
-//     if (!currentFig) return;
-//     // console.log(e.target)
-    
-//     // else if (e.key === ' ') e.preventDefault(), pause();
-// })
 
+document.addEventListener('keyup', function handler(e) {
+    if (!currentFig) return;
+    if (e.key === 'ArrowDown') speedFlag = true;
+
+    // console.log(e.target)
+})
+
+const getTop = () => JSON.parse(localStorage.getItem('highscores'))
+
+const renderTop = () => getTop().forEach((score, i) => top5.children[i].innerHTML = score)
+
+function saveScore() {
+    if (score.innerHTML > getTop().pop()) {
+        localStorage.setItem('highscores', JSON.stringify([...getTop(), score.innerHTML].sort((a, b) => +b - +a).slice(0, -1)));
+        renderTop();
+    }
+}
+
+// let buttons = document.getElementsByClassName('button-container')[0];
+// document.onfocus = () => false
+
+localStorage.setItem('highscores', localStorage.getItem('highscores') || "[0, 0, 0, 0, 0]");
+renderTop();
 dataMtx = new Array(height).fill('').map(_ => new Array(width).fill(0));
-createTable()
-    // startNewGame()
+createTable();
 
     // }

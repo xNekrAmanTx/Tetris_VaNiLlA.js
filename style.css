@@ -78,6 +78,38 @@ button {
     border-radius: 1em;
 }
 
+#topDiv{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    background-color: rgb(187, 233, 168);
+}
+
+#topCaption{
+    font-size: 24px;
+}
+
+#top5{
+    margin: 0 ;
+    padding: 0 16px;
+}
+
+#top5>span {
+    display: block;
+    padding-bottom: 2px;
+}
+
+.button-container *{
+    outline: none;
+}
+
+/* #pauseBtn{
+    transition: width 1s;
+} */
+
+
 /* table tr:nth-child(1),
 table tr:nth-child(2){
     display: none;
